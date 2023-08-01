@@ -1,42 +1,45 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useRef, useState } from 'react';
 
 const { io } = require('socket.io-client');
 
 const socket = io('http://localhost:3000/');
-
-// socket.on('button-clicked', () => {
-//   console.log('clicked by server');
-// });
-
+let user;
 export default function Home() {
-  const [count, setCount] = useState(0);
+  const [message, setMessage] = useState('');
+  const messageDiv = useRef();
 
-  function handleClick() {
-    setCount(count + 1);
-    socket.emit('button-clicked', { count });
-  }
-
-  socket.on('increase', ({ data }) => {
-    setCount(count + data.count);
+  socket.on('connect', () => {
+    user = socket.id;
   });
 
-  useEffect(() => {
-    document.getElementById('title').innerText = count;
-  }, [count]);
+  socket.on('received-message', (fromServer) => {
+    messageDiv.current.innerText = fromServer.message || '';
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    setMessage(e.target.value);
+    socket.emit('event', { message, user });
+  };
 
   return (
     <>
-      <h1>client side</h1>
-      <button
-        onClick={() => {
-          handleClick();
-        }}
-      >
-        click me
-      </button>
-      <p id="title"></p>
+      <form>
+        <label htmlFor="username">Message: </label>
+        <input
+          type="text"
+          id="username"
+          value={message}
+          onChange={(e) => {
+            setMessage(e.target.value);
+          }}
+        />
+        <button onClick={handleSubmit}>submit</button>
+      </form>
+      <div ref={messageDiv}></div>
     </>
   );
 }
